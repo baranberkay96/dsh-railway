@@ -1,5 +1,7 @@
 # Deploy and Host DSH with Railway
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/dsh-02-coding-agent-with-web-ui?referralCode=20H68q)
+
 Run DSH (`dsh`), the open-source agent harness built on DeepSeek Harness, as an always-on coding agent with its browser UI. It reads and edits files, runs commands, delegates to subagents, schedules tasks and loads plugins, while sessions, settings and workspaces stay on a Railway volume. This is a community template, not affiliated with or endorsed by DeepSeek.
 
 ## About Hosting DSH
