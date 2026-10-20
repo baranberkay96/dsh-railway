@@ -1,0 +1,95 @@
+{
+  "name": "DSH 0.2 Coding Agent with Web UI",
+  "description": "Always-on coding agent built on DeepSeek Harness, with plugins and web UI.",
+  "category": "AI/ML",
+  "tags": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "ai-agent",
+    "coding-agent",
+    "llm",
+    "web-ui",
+    "plugins"
+  ],
+  "image": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/terminal.svg",
+  "upstream": {
+    "repo": "deepseek-ai/deepseek-harness",
+    "version": "0.2.1-rc.2",
+    "npm": "@deepseek-ai/dsh@0.2.1-rc.2",
+    "tag": "dsh-v0.2.1-rc.2",
+    "commit": "687f282e8625c6b8d11ff58211a90524be2e4317",
+    "released": "2026-10-17",
+    "checked": "2026-10-20"
+  },
+  "services": {
+    "deepseek-harness": {
+      "icon": "https://cdn.jsdelivr.net/gh/deepseek-ai/deepseek-harness@dsh-v0.2.1-rc.2/apps/desktop/resources/icon.svg",
+      "source": {
+        "repo": "baranberkay96/dsh-railway",
+        "rootDirectory": "/services/deepseek-harness"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/healthz",
+      "healthcheckTimeout": 600,
+      "restartPolicyType": "ALWAYS",
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": true,
+      "targetPort": 8080,
+      "tcpProxy": null,
+      "volume": {
+        "mountPath": "/data"
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "8080",
+          "description": "Port of the built-in password gate (Caddy). Railway's healthcheck and public domain use it; keep 8080 unless you also change the domain's target port.",
+          "required": false
+        },
+        "DSH_WEB_USERNAME": {
+          "defaultValue": "admin",
+          "description": "Username for the Web UI login prompt (letters, digits, '.', '_' or '-').",
+          "required": false
+        },
+        "DSH_WEB_PASSWORD": {
+          "defaultValue": "${{secret(32)}}",
+          "description": "Web UI password, generated at deploy. Copy it from this variable to sign in. The service refuses to start if it is empty or shorter than 12 characters.",
+          "required": false
+        },
+        "DEEPSEEK_API_KEY": {
+          "defaultValue": "",
+          "description": "Optional. DeepSeek API key (platform.deepseek.com) for the default model and web search. You can instead save it in the Web UI under Settings > Models, which also supports other providers.",
+          "required": false
+        },
+        "DSH_PERMISSION_MODE": {
+          "defaultValue": "workspace-write",
+          "description": "Default permission preset for new sessions: read-only, workspace-write (upstream default, asks before wider access) or danger-full-access (no sandbox, no approval prompts). Can also be changed per session in the Web UI.",
+          "required": false
+        },
+        "DSH_TRUSTED_HOSTS": {
+          "defaultValue": "",
+          "description": "Optional. Extra host names the Web UI is reached through, comma-separated (e.g. a custom domain like agent.example.com). The Railway domain is trusted automatically.",
+          "required": false
+        },
+        "DSH_TELEMETRY_DISABLED": {
+          "defaultValue": "1",
+          "description": "Any non-empty value turns off upstream's feedback-triggered OpenTelemetry upload. Delete the variable to restore the upstream default.",
+          "required": false
+        },
+        "TZ": {
+          "defaultValue": "UTC",
+          "description": "IANA time zone for the agent's clock and scheduled tasks (e.g. Europe/Istanbul).",
+          "required": false
+        },
+        "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": {
+          "defaultValue": "15",
+          "description": "Seconds the old container gets on redeploy to stop dsh cleanly (it drains for up to 5 seconds) before it is killed.",
+          "required": false
+        }
+      }
+    }
+  },
+  "buckets": []
+}

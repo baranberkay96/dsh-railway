@@ -1,0 +1,15 @@
+# Railway overlay for the dsh Web profile, applied last with
+# `dsh web --patch /opt/dsh-railway/railway.patch.yml`. A patch replaces the
+# whole `config` of each row it names, so this file names as few rows as
+# possible and restates every key of those rows.
+#
+# First-use workspace: on Linux, upstream finds the "Documents" folder with
+# `xdg-user-dir`, which containers do not have, so a fresh Web UI would start
+# without a default workspace. Point the lookup at a directory on the /data
+# volume instead. The default workspace then lives in
+# <documentsDirectory>/deepseek-harness/default-workspace, which survives
+# redeploys. railway-start.sh sets DSH_DOCUMENTS_DIR.
+- id: workspace-controller
+  config:
+    documentsDirectory: !!js "process.env.DSH_DOCUMENTS_DIR || '/data/home/Documents'"
+    documentsLookupTimeoutMs: 10000

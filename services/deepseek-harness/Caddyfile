@@ -1,0 +1,100 @@
+# Public entry for DeepSeek Harness on Railway.
+#
+# dsh (the Harness Web UI) listens on 127.0.0.1 only. This Caddy instance owns
+# Railway's PORT and asks for the template password (HTTP basic auth) before a
+# browser can obtain a dsh session. The session itself is dsh's own: a signed,
+# HttpOnly cookie minted by dsh's launch-token exchange and checked by dsh on
+# every API call and WebSocket stream.
+#
+# Environment (set by railway-start.sh, never by hand):
+#   PORT                   public port (Railway healthcheck + domain target)
+#   DSH_INTERNAL_PORT      dsh's loopback port
+#   DSH_WEB_USERNAME       basic-auth user
+#   DSH_WEB_PASSWORD_HASH  bcrypt hash of DSH_WEB_PASSWORD
+#   DSH_LAUNCH_TOKEN       dsh's per-process launch token (read at request time)
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:{$PORT:8080} {
+	# Railway healthcheck, no password. dsh answers an index request without
+	# its session cookie with 401, which proves the Web UI is up; that answer
+	# becomes a plain 200 here. Connection refused (dsh down) stays a 503.
+	handle /healthz {
+		rewrite * /
+		reverse_proxy 127.0.0.1:{$DSH_INTERNAL_PORT:3080} {
+			header_up Host 127.0.0.1:{$DSH_INTERNAL_PORT:3080}
+			header_up -Cookie
+			header_up -Authorization
+			@dsh_up status 401 2xx
+			handle_response @dsh_up {
+				respond "ok" 200
+			}
+		}
+	}
+
+	# API and WebSocket calls that carry a dsh session cookie go straight to
+	# dsh, which verifies the signed cookie on every call (401 otherwise).
+	# Without this, browsers that do not send basic-auth credentials on
+	# WebSocket upgrades (Safari, iOS) could not keep the UI connected.
+	@dsh_session {
+		path /api/*
+		header_regexp Cookie dsh-auth-[A-Za-z0-9_-]+=
+	}
+	handle @dsh_session {
+		reverse_proxy 127.0.0.1:{$DSH_INTERNAL_PORT:3080} {
+			header_up -Authorization
+			header_down Set-Cookie "; HttpOnly" "; HttpOnly; Secure"
+			flush_interval -1
+		}
+	}
+
+	# Everything else: template password first.
+	handle {
+		basic_auth {
+			{$DSH_WEB_USERNAME:admin} {$DSH_WEB_PASSWORD_HASH}
+		}
+
+		# Opening the app without a dsh session (first visit, expired cookie,
+		# new browser): dsh answers 401, so send the signed-in browser through
+		# dsh's own token exchange. dsh then sets its session cookie and
+		# redirects to the clean URL. Railway's edge serves HTTPS, so the
+		# cookie also gets the Secure flag (dsh itself only sees plain HTTP).
+		@app_entry {
+			method GET
+			path / /index.html
+		}
+		handle @app_entry {
+			reverse_proxy 127.0.0.1:{$DSH_INTERNAL_PORT:3080} {
+				header_up -Authorization
+				header_down Set-Cookie "; HttpOnly" "; HttpOnly; Secure"
+				@no_session status 401
+				handle_response @no_session {
+					header Cache-Control "no-store"
+					header Referrer-Policy "no-referrer"
+					redir /?token={env.DSH_LAUNCH_TOKEN} 303
+				}
+			}
+		}
+
+		handle {
+			reverse_proxy 127.0.0.1:{$DSH_INTERNAL_PORT:3080} {
+				header_up -Authorization
+				header_down Set-Cookie "; HttpOnly" "; HttpOnly; Secure"
+				flush_interval -1
+			}
+		}
+	}
+
+	handle_errors 502 503 504 {
+		header Content-Type "text/plain; charset=utf-8"
+		header Cache-Control "no-store"
+		header Retry-After 10
+		respond "DeepSeek Harness is starting or restarting. Retry in a few seconds; the deploy logs show progress." 503
+	}
+}
