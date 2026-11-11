@@ -1,5 +1,6 @@
 {
-  "name": "DSH 0.2 Coding Agent with Web UI",
+  "name": "DSH Coding Agent with Web UI",
+  "idSeed": "DSH 0.2 Coding Agent with Web UI",
   "description": "Always-on coding agent built on DeepSeek Harness, with plugins and web UI.",
   "category": "AI/ML",
   "tags": [
